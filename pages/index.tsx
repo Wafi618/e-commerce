@@ -120,35 +120,40 @@ export default function ECommerceApp() {
   const cartTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
   const handleCheckout = async () => {
-    setCheckoutLoading(true);
-    try {
-      const response = await fetch('/api/checkout_sessions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          cartItems: cart,
-          customerEmail: user?.email || '',
-          customerName: user?.name || 'Guest',
-        }),
-      });
+  setCheckoutLoading(true);
+  try {
+    const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const invoiceNumber = `INV-${Date.now()}`;
+    
+    const response = await fetch('/api/bkash/checkout', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        amount: total.toString(),
+        invoiceNumber: invoiceNumber,
+        cartItems: cart,
+        customerEmail: user?.email || '',
+        customerName: user?.name || 'Guest',
+      }),
+    });
 
-      const data = await response.json();
+    const data = await response.json();
 
-      if (data.success && data.url) {
-        // Redirect to Stripe Checkout
-        window.location.href = data.url;
-      } else {
-        alert(data.error || 'Failed to create checkout session');
-      }
-    } catch (err) {
-      alert('Network error. Failed to process checkout.');
-      console.error('Checkout error:', err);
-    } finally {
-      setCheckoutLoading(false);
+    if (data.success && data.bkashURL) {
+      // Redirect to bKash Checkout
+      window.location.href = data.bkashURL;
+    } else {
+      alert(data.error || 'Failed to create checkout session');
     }
-  };
+  } catch (err) {
+    alert('Network error. Failed to process checkout.');
+    console.error('Checkout error:', err);
+  } finally {
+    setCheckoutLoading(false);
+  }
+};
 
   const deleteProduct = async (id) => {
     if (!confirm('Delete this product?')) return;
@@ -528,7 +533,7 @@ export default function ECommerceApp() {
                 ) : (
                   <>
                     <CreditCard className="w-5 h-5" />
-                    Checkout with Stripe
+                    Checkout with Bkash
                   </>
                 )}
               </button>
